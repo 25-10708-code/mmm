@@ -5,11 +5,11 @@ import requests
 from io import BytesIO
 import json
 
-# 세션 상태 초기화 (결과 저장용)
-if "poster_image" not in s:
-    s.poster_image = None
-if "recommendations" not in s:
-    s.recommendations = None
+# 1. 세션 상태 초기화 (오타 수정: st.session_state로 명확하게 지정)
+if "poster_image" not in st.session_state:
+    st.session_state.poster_image = None
+if "recommendations" not in st.session_state:
+    st.session_state.recommendations = None
 
 # 스트림릿 페이지 설정
 st.set_page_config(page_title="인생의 사운드트랙 (Life OST)", page_icon="🎬", layout="centered")
@@ -18,7 +18,7 @@ st.title("🎬 인생의 사운드트랙 (Life-Movie OST)")
 st.subheader("오늘 당신의 하루를 영화로 만든다면 어울릴 OST는?")
 st.write("오늘 있었던 일이나 감정을 한두 줄로 적어주세요. AI가 당신만을 위한 영화 포스터와 OST를 선물합니다.")
 
-# 사이드바 - API 키 입력 (안전한 실행을 위함)
+# 사이드바 - API 키 입력
 with st.sidebar:
     st.header("설정")
     api_key = st.text_input("OpenAI API Key를 입력하세요", type="password")
@@ -48,22 +48,15 @@ text_color_map = {
 
 def analyze_and_recommend(diary_text, client):
     """일기를 분석하여 감정 태그, 영화 제목, 추천 OST 3곡을 반환합니다."""
-    prompt = f"""
-    사용자가 쓴 오늘 하루의 일기입니다:
-    "{diary_text}"
     
-    이 일기의 감정선을 분석해서 다음 정보를 포함한 JSON 형태로만 응답해주세요. (마크다운 block 쓰지 마세요)
-    {{
-        "emotion_tag": "분석된 핵심 감정 단어 하나 (예: 홀가분함, 쓸쓸함, 잔잔한 기쁨)",
-        "movie_title": "이 하루를 영화로 만든다면 어울릴 가상의 감성적인 영화 제목",
-        "ost_list": [
-            {{"title": "곡 제목 1", "artist": "아티스트 1", "reason": "이 곡을 추천하는 위로의 한마디"}},
-            {{"title": "곡 제목 2", "artist": "아티스트 2", "reason": "이 곡을 추천하는 위로의 한마디"}},
-            {{"title": "곡 제목 3", "artist": "아티스트 3", "reason": "이 곡을 추천하는 위로의 한마디"}}
-        ]
-    }}
-    """
-    
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=
+    # 중괄호 탈출 문제를 방지하기 위해 프롬프트 템플릿을 정돈했습니다.
+    prompt = (
+        f"사용자가 쓴 오늘 하루의 일기입니다:\n"
+        f"\"{diary_text}\"\n\n"
+        f"이 일기의 감정선을 분석해서 다음 정보를 포함한 JSON 형태로만 응답해주세요.\n"
+        f"마크다운 블록(```json ...)은 절대 사용하지 마세요.\n\n"
+        f"Required JSON Format:\n"
+        f"{{\n"
+        f"    \"emotion_tag\": \"분석된 핵심 감정 단어 하나 (예: 홀가분함, 쓸쓸함)\",\n"
+        f"    \"movie_title\": \"이 하루를 영화로 만든다면 어울릴 가상의 영화 제목\",\n"
+        f"    \"ost_list\":
